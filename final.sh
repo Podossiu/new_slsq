@@ -1,0 +1,73 @@
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_1_epoch70_percentile0_05.yaml  &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_5_epoch70_percentile0_05.yaml  &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_05_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_01_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_005_epoch70_percentile0_05.yaml &
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_5_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_05_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_01_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_005_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_05_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_01_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_005_epoch70_percentile0_05.yaml 
+
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_1_epoch70_percentile0_05.yaml  
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_5_epoch70_percentile0_05.yaml  &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_05_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_01_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_005_epoch70_percentile0_05.yaml &
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_5_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_5_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_1_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_5_epoch70_percentile0_05.yaml  
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_05_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_01_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_005_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_1_epoch70_percentile0_05.yaml  
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_5_epoch70_percentile0_05.yaml  
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_05_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_01_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_005_epoch70_percentile0_05.yaml 
+
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a3w3_cifar10_hard_pruning_0_8_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_0_8_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_0_8_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_0_8_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a3w3_cifar10_hard_pruning_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a4w4_cifar10_hard_pruning_1_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a6w6_cifar10_hard_pruning_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_hard_pruning/mobilenetv2_a8w8_cifar10_hard_pruning_1_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a3w3_cifar10_0_8_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_8_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_8_epoch70_percentile0_05.yaml 
+
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_8_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_1_epoch70_percentile0_05.yaml 
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a3w3_cifar10_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_1_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_35_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_35_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_35_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a3w3_cifar10_0_35_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_3_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_3_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_3_epoch70_percentile0_05.yaml &
+#python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a3w3_cifar10_0_3_epoch70_percentile0_05.yaml &
+
+
+python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a4w4_cifar10_0_5_epoch70_percentile0_05.yaml &
+python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a6w6_cifar10_0_5_epoch70_percentile0_05.yaml &
+python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a3w3_cifar10_0_5_epoch70_percentile0_05.yaml &
+python3 main.py examples/lsq/mobilenet/cifar10/final_cifar10_soft_pruning/mobilenetv2_a8w8_cifar10_0_5_epoch70_percentile0_05.yaml &
