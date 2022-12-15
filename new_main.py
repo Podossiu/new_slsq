@@ -37,7 +37,7 @@ def main():
     set_seed(42)
     script_dir = Path.cwd()
     args = util.get_config(default_file=script_dir / 'config.yaml')
-    wandb.init(reinit=True, name = args.name + str(args.quan.weight.duq), project="SLSQ")
+    wandb.init(reinit=True, name = args.name + str(args.quan.weight.ste), project="SLSQ")
     output_dir = script_dir / args.output_dir
     output_dir.mkdir(exist_ok=True)
 
@@ -73,7 +73,6 @@ def main():
                 '\n              Test Set = %d (%d)' % (len(test_loader.sampler), len(test_loader)))
 
     model = create_model(args)
-    
     modules_to_replace = quan.find_modules_to_quantize(model, args.quan)
     model = quan.replace_module_by_names(model, modules_to_replace)
     tbmonitor.writer.add_graph(model, input_to_model=train_loader.dataset[0][0].unsqueeze(0))

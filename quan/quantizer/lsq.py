@@ -10,7 +10,6 @@ def grad_scale(x, scale):
     y_grad = x * scale
     return (y - y_grad).detach() + y_grad
 
-<<<<<<< HEAD
 def ste_w_quant(input, c, p, thd):
     eps = t.tensor([t.finfo(t.float32).eps], device = input.device)
     sign = input.sign()
@@ -20,7 +19,7 @@ def ste_w_quant(input, c, p, thd):
     p_mask = (input.abs() < p).float()
     
     v_t = (input.abs()-p) * (1 - p_mask) * sign
-    v_ste_t = v_t + p_mask * (input.abs() ** 2) / (p**2) * sign
+    v_ste_t = v_t + p_mask * (input.abs() ** 2) / (p**2) * sign * (input.abs() - p)
 
     v_t = (v_t - v_ste_t).detach() + v_ste_t
     
@@ -36,6 +35,8 @@ def w_quant(input, c, p, thd):
     sign = input.sign()
     distance = c - p + eps
     s = distance / thd
+    
+    p_mask = (input.abs() < p).float()
 
     v_t = (input.abs() - p) * (1 - p_mask) * sign
     v_q = t.clamp(v_t / s, -thd, thd)
@@ -44,9 +45,6 @@ def w_quant(input, c, p, thd):
     v_dq = v_q * s
 
     return v_dq
-
-=======
->>>>>>> origin
 
 def grad_p_scale(c, p):
     x = c
@@ -63,32 +61,19 @@ class ste_w_quan(t.autograd.Function):
         sign = input.sign()
         distance = c - p + eps
         s = distance / thd
-<<<<<<< HEAD
         
         v_t = t.clamp(input.abs() - p, min = 0) * sign
         v_q = t.round(t.clamp(v_t / s, -thd, thd))
         v_dq = v_q * s
 
         ctx.save_for_backward(input,v_t, v_q, c, p, distance)
-=======
-
-        v_g = (input.abs() - p) / distance
-        v_c = t.clamp(v_g * thd, 0, thd) * sign
-        v_q = t.round(v_c)
-        
-        v_dq = v_q * s
-        ctx.save_for_backward(input,v_g, v_q, c, p, distance)
->>>>>>> origin
         ctx.thd = thd
         ctx.s = s
         return v_dq
+
     @staticmethod
     def backward(ctx, grad_output):
-<<<<<<< HEAD
         input, v_t, v_q, c, p, distance = ctx.saved_tensors
-=======
-        input, v_g, v_q, c, p, distance = ctx.saved_tensors
->>>>>>> origin
         thd = ctx.thd
         s = ctx.s
         sign = input.sign()
@@ -96,7 +81,6 @@ class ste_w_quan(t.autograd.Function):
         c_mask = (input.abs() > c).float()
         p_mask = (input.abs() < p).float()
         
-<<<<<<< HEAD
         grad_c = (v_q / thd - v_t / distance) * i_mask + c_mask * sign
         grad_p = -grad_c - sign * i_mask
 
@@ -106,17 +90,6 @@ class ste_w_quan(t.autograd.Function):
         grad_p = (grad_p * grad_output.clone()).sum().reshape(p.shape)
         
         grad_input = (i_mask + p_mask * (input.abs() -p) * 2 * input / (p ** 2) * sign) * grad_output.clone()
-=======
-        grad_c = (v_q / thd - v_g * sign) * i_mask + c_mask * sign
-        grad_p = -grad_c - sign * i_mask
-
-        grad_p = grad_p - p_mask * (v_g * thd).round() * s * sign / ( p + 1e-20 )
-
-        grad_c = (grad_c * grad_output.clone()).sum().reshape(c.shape)
-        grad_p = (grad_p * grad_output.clone()).sum().reshape(p.shape)
-
-        grad_input = (i_mask + p_mask * (v_g * thd).round() * s / ( p + 1e-20 )) * grad_output.clone()
->>>>>>> origin
 
         return grad_input, grad_c, grad_p, None
 
@@ -232,11 +205,7 @@ class weight_quant(t.autograd.Function):
         return grad_input, grad_c, grad_p, None
 
 class SLsqQuan(Quantizer):
-<<<<<<< HEAD
-    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = False):
-=======
     def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = True):
->>>>>>> origin
         super().__init__(bit)
         
         self.thd_neg = -2 ** (bit - 1) + 1
@@ -251,18 +220,12 @@ class SLsqQuan(Quantizer):
         self.register_buffer('eps', t.tensor([t.finfo(t.float32).eps]))
         self.gamma = t.nn.Parameter(t.ones(1))
         self.ste = ste
-<<<<<<< HEAD
         self.init_mode = False
         if ste :
             self.weight_quant = ste_w_quant
         else:
             self.weight_quant = w_quant
         
-=======
-        if ste :
-            self.weight_quant = ste_w_quan.apply
-
->>>>>>> origin
     def calculate_block_sparsity(self,x):
         co, ci, kh, kw = x.shape
         x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw).detach()
@@ -296,12 +259,9 @@ class SLsqQuan(Quantizer):
             self.c.data = s.clone().detach() * self.thd_pos
     
     def forward(self, x):
-<<<<<<< HEAD
         if self.init_mode:
             self.init_mode = False
             return x
-=======
->>>>>>> origin
         self.c.data.clamp_(min = self.eps.item())
         self.p.data.clamp_(min = self.eps.item(),max = self.c.item())
         if self.per_channel:
@@ -314,17 +274,10 @@ class SLsqQuan(Quantizer):
             #s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
             #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5 / (self.c / (self.c - self.p)).detach() * self.thd_pos
             #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * (self.p / (self.c - self.p)).detach()
-<<<<<<< HEAD
         #c_scale = grad_scale(self.c, c_grad_scale)
         #p_scale = grad_scale(self.p, p_grad_scale)
         c_scale = self.c
         p_scale = self.p
-=======
-        c_scale = grad_scale(self.c, c_grad_scale)
-        p_scale = grad_scale(self.p, p_grad_scale)
-        #c_scale = self.c
-        #p_scale = self.p
->>>>>>> origin
         
         '''
         distance = c_scale - p_scale + self.eps
@@ -340,10 +293,7 @@ class SLsqQuan(Quantizer):
         p_scale = p_scale.sign() * t.pow(p_scale.abs(), self.gamma)
         #quant_x = x
         '''
-<<<<<<< HEAD
         '''
-=======
->>>>>>> origin
         if self.ste:
             quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
         else:
@@ -353,14 +303,11 @@ class SLsqQuan(Quantizer):
             quant_x = t.clamp(quant_x, 0, self.thd_pos) * sign
             quant_x = (t.round(quant_x) - quant_x).detach() + quant_x
             quant_x = quant_x * s
+        '''
+        quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
         if (len(x.shape) == 4 and x.shape[1] != 1):
             mask = self.soft_pruner(x, p_scale)
             quant_x = quant_x * mask
-<<<<<<< HEAD
-        '''
-        quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
-=======
->>>>>>> origin
         return quant_x
 
 class pqQuan(Quantizer):
@@ -457,7 +404,6 @@ class LsqQuan(Quantizer):
             # unsigned activation is quantized to [0, 2^b-1]
             self.thd_neg = 0
             self.thd_pos = 2 ** bit - 1
-            print(self.thd_pos)
         else:
             if symmetric:
                 # signed weight/activation is quantized to [-2^(b-1)+1, 2^(b-1)-1]

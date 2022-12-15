@@ -1,14 +1,14 @@
 # Experiment name
-name: MobileNetv2_cifar10_a8w8_0_05_epoch100_percentile_0_05_no_duq
+name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_ste
 
 # Dataset loader
 dataloader:
   # Dataset to train/validate (choices: imagenet, cifar10)
-  dataset: cifar10
+  dataset: imagenet
   # Number of categories in the specified dataset (choices: 1000, 10)
-  num_classes: 10
+  num_classes: 1000
   # Path to dataset directory
-  path: /data
+  path: /data/imagenet
   # Size of mini-batch
   batch_size: 128
   # Portion of training dataset to set aside for validation (range: [0, 1))
@@ -61,7 +61,7 @@ quan:
     hard_pruning: false
     block_size: 4
     temperature: 0.05
-    duq: false
+    ste: true
 
   excepts:
     # Specify quantized bit width for some layers, like this:

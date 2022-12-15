@@ -45,11 +45,11 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
 
     end_time = time.time()
     for batch_idx, (inputs, targets) in enumerate(train_loader):
+        init_mode = args.init_mode
         if args.init_mode:
             for n, m in model.named_modules():
                 if hasattr(m, "init_mode"):
                     m.init_mode = True
-                    print(m)
             args.init_mode = False
         inputs = inputs.to(args.device.type)
         targets = targets.to(args.device.type)
@@ -67,7 +67,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         optimizer.zero_grad()
 
         masking_loss_list = []
-        if regularizer:
+        if regularizer and not init_mode:
             for n, m in model.named_modules():
                 if hasattr(m, "soft_mask") and m.soft_mask is not None:
                     masking_loss_list.append(m.soft_mask.mean())
