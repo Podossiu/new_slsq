@@ -46,6 +46,12 @@ def make_figure(model, args, epoch, hard_pruning = False):
             plt.hist(m.weight.clone().detach().reshape(-1).cpu(), density = True, bins = 200)
             plt.title(n + "weight")
             plt.savefig(directory +'/' + n + "weight" + '.png')
+            plt.axvline(x = m.quan_w_fn.p.clone().detach().cpu(), color = "red", linestyle = "dashed")
+            plt.axvline(x = -m.quan_w_fn.p.clone().detach().cpu(), color = "red", linestyle = "dashed")
+            plt.axvline(x = m.quan_w_fn.c.clone().detach().cpu(), color = "red", linestyle = "dashed")
+            plt.axvline(x = -m.quan_w_fn.c.clone().detach().cpu(), color = "red", linestyle = "dashed")
+            plt.savefig(directory + '/' + n + "weight + p,c" + '.png')
+
             if not hard_pruning:
                 plt.close()
                 m.quan_w_fn.hard_pruning = True
@@ -68,7 +74,7 @@ def main():
     set_seed(42)
     script_dir = Path.cwd()
     args = util.get_config(default_file=script_dir / 'config.yaml')
-    wandb.init(reinit=True, name = args.name + str(args.quan.weight.duq), project="SLSQ")
+    wandb.init(reinit=True, name = args.name + str(args.quan.weight.ste), project="SLSQ")
     output_dir = script_dir / args.output_dir
     output_dir.mkdir(exist_ok=True)
 

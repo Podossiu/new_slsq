@@ -205,7 +205,7 @@ class weight_quant(t.autograd.Function):
         return grad_input, grad_c, grad_p, None
 
 class SLsqQuan(Quantizer):
-    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = True):
+    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = True, z_param = False):
         super().__init__(bit)
         
         self.thd_neg = -2 ** (bit - 1) + 1
@@ -221,6 +221,8 @@ class SLsqQuan(Quantizer):
         self.gamma = t.nn.Parameter(t.ones(1))
         self.ste = ste
         self.init_mode = False
+        self.z = t.nn.Parameter(t.zeros(1))
+        self.z_param = z_param
         if ste :
             self.weight_quant = ste_w_quant
         else:
@@ -238,7 +240,10 @@ class SLsqQuan(Quantizer):
         co, ci, kh, kw = x.shape
         
         x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw)
-        score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
+        if self.z_param:
+            score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + self.z)
+        else:
+            score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
         if not self.hard_pruning:
             temperature = (score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)] * 0.5).detach()
             _soft_mask = t.nn.functional.sigmoid(score/temperature)
@@ -262,22 +267,36 @@ class SLsqQuan(Quantizer):
         if self.init_mode:
             self.init_mode = False
             return x
+        self.z.data.clamp_(min = -self.p.item())
         self.c.data.clamp_(min = self.eps.item())
         self.p.data.clamp_(min = self.eps.item(),max = self.c.item())
         if self.per_channel:
             #s_grad_scale = 1.0 / ((x.numel()) ** 0.5)
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         else:
-            p_grad_scale = (self.thd_pos / x.numel()) ** 0.5
-            c_grad_scale = (self.thd_pos / x.numel()) ** 0.5
+            #x_numel = (x.abs() >= self.p).float().sum().detach()
+            p_mask = (x.abs() >= self.p).float().sum().detach()   
+            s = ((self.c - self.p ) / self.thd_pos).detach()
+            
+            #temp_grad_scale = ((self.thd_pos * x_numel * (s ** 2) + (self.p * (x.abs() >= self.p).float() * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
+            #c_grad_scale = (self.thd_pos * self.c / temp_grad_scale).detach()
+            #p_grad_scale = (self.p / temp_grad_scale).detach() / (4)
+            #l2 = (x ** 2).sum().sqrt().detach()
+            #p_grad_scale = (self.p / l2).detach()
+            #c_grad_scale = (self.c / l2 * self.thd_pos).detach()
+            #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5
+            #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5
             #x_numel = (x.abs() >= self.p).float().sum().detach()
             #s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
             #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5 / (self.c / (self.c - self.p)).detach() * self.thd_pos
             #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * (self.p / (self.c - self.p)).detach()
-        #c_scale = grad_scale(self.c, c_grad_scale)
-        #p_scale = grad_scale(self.p, p_grad_scale)
-        c_scale = self.c
-        p_scale = self.p
+            temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ((2 * self.p * x.abs() - self.p ** 2) * p_mask).sum()) ** 2).detach()
+            p_grad_scale = (self.p / temp_grad).detach()
+            c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
+        c_scale = grad_scale(self.c, c_grad_scale)
+        p_scale = grad_scale(self.p, p_grad_scale)
+        #c_scale = self.c
+        #p_scale = self.p
         
         '''
         distance = c_scale - p_scale + self.eps
