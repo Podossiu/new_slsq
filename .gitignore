@@ -2,3 +2,4 @@ wandb/*
 out/*
 hard_pruned_model/*
 figure/*
+sparsity_figure/*
