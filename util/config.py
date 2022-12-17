@@ -22,6 +22,8 @@ def get_config(default_file):
     p = argparse.ArgumentParser(description='Learned Step Size Quantization')
     p.add_argument('config_file', metavar='PATH', nargs='+',
                    help='path to a configuration file')
+    p.add_argument('--resume_path', '-r', type = str,default = '',
+                   help='path to a configuration file')
     arg = p.parse_args()
 
     with open(default_file) as yaml_file:
@@ -33,7 +35,9 @@ def get_config(default_file):
         with open(f) as yaml_file:
             c = yaml.safe_load(yaml_file)
             cfg = merge_nested_dict(cfg, c)
-
+    if arg.resume_path != '':
+        cfg['resume']['path'] = arg.resume_path
+        cfg['resume']['lean'] = True
     return munch.munchify(cfg)
 
 

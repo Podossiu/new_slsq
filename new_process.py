@@ -72,7 +72,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                 if hasattr(m, "soft_mask") and m.soft_mask is not None:
                     masking_loss_list.append(m.soft_mask.mean())
             masking_loss = t.stack(masking_loss_list)
-            masking_loss = (masking_loss * masking_loss).mean()
+            masking_loss = masking_loss.mean()
             #masking_loss = t.linalg.norm(t.stack(masking_loss_list), dim =0, ord = 2)
             masking_loss = masking_loss * args.lamb
             loss += masking_loss

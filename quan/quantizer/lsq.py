@@ -231,7 +231,10 @@ class SLsqQuan(Quantizer):
     def calculate_block_sparsity(self,x):
         co, ci, kh, kw = x.shape
         x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw).detach()
-        score = (x_reshape.abs().mean(dim = 1, keepdim = True) - self.p).detach()
+        if self.z_param:
+            score = (x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p+self.z)).detach()
+        else:
+            score = (x_reshape.abs().mean(dim = 1, keepdim = True) - self.p).detach()
         hard_mask = (score > 0).float().detach()
         return hard_mask.sum(), hard_mask.numel()
 
@@ -293,10 +296,10 @@ class SLsqQuan(Quantizer):
             temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ((2 * self.p * x.abs() - self.p ** 2) * p_mask).sum()) ** 2).detach()
             p_grad_scale = (self.p / temp_grad).detach()
             c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
-        c_scale = grad_scale(self.c, c_grad_scale)
-        p_scale = grad_scale(self.p, p_grad_scale)
-        #c_scale = self.c
-        #p_scale = self.p
+        #c_scale = grad_scale(self.c, c_grad_scale)
+        #p_scale = grad_scale(self.p, p_grad_scale)
+        c_scale = self.c
+        p_scale = self.p
         
         '''
         distance = c_scale - p_scale + self.eps

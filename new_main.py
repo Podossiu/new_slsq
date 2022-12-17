@@ -30,6 +30,7 @@ def pruning_log(model):
             pruning_log[n + "clipping_point"] = m.quan_w_fn.c.detach()
             pruning_log[n + "gamma"] = m.quan_w_fn.gamma.detach()
             pruning_log[n + "distance"] = (m.quan_w_fn.c- m.quan_w_fn.p).detach()
+            pruning_log[n + "z"] = m.quan_w_fn.z.detach()
     import wandb;
     wandb.log(pruning_log)
 
