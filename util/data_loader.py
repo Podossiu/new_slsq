@@ -50,7 +50,7 @@ def load_data(cfg):
             root=os.path.join(cfg.path, 'train'), transform=train_transform)
         test_set = tv.datasets.ImageFolder(
             root=os.path.join(cfg.path, 'val'), transform=val_transform)
-        train_set = t.utils.data.Subset(train_set, range(0, len(train_set), 10))
+        #train_set = t.utils.data.Subset(train_set, range(0, len(train_set), 10))
 
     elif cfg.dataset == 'cifar10':
         train_transform = tv.transforms.Compose([

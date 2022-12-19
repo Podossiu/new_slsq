@@ -62,6 +62,6 @@
 #python3 main.py examples/lsq/mobilenet/imagenet/soft_pruning/mobilenetv2_a8w8_imagenet_8_epoch70_percentile0_4.yaml
 
 #python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_ste.yaml 
-#python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_no_ste.yaml 
+python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_no_ste.yaml 
 #python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_no_ste_z_param.yaml 
-python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_ste_z_param.yaml 
+#python3 new_main.py examples/lsq/mobilenet/imagenet/mobilenetv2_a8w8_imagenet_0_05_epoch100_percentile0_05_ste_z_param.yaml 

@@ -270,9 +270,9 @@ class SLsqQuan(Quantizer):
         if self.init_mode:
             self.init_mode = False
             return x
-        self.z.data.clamp_(min = -self.p.item())
         self.c.data.clamp_(min = self.eps.item())
         self.p.data.clamp_(min = self.eps.item(),max = self.c.item())
+        self.z.data.clamp_(min = -self.p.item())
         if self.per_channel:
             #s_grad_scale = 1.0 / ((x.numel()) ** 0.5)
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
