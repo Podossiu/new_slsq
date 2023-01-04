@@ -291,11 +291,11 @@ class SLsqQuan(Quantizer):
             p_mask = (x.abs() >= self.p).float()
             s = ((self.c - self.p ) / self.thd_pos).detach()
             
-            #temp_grad_scale = ((x.numel() / self.thd_pos) ** 0.5)
+            temp_grad_scale = ((x.numel() / self.thd_pos) ** 0.5)
            
-            #c_grad_scale = ( self.thd_pos / temp_grad_scale)
+            c_grad_scale = ( self.thd_pos / temp_grad_scale)
             #c_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-            #p_grad_scale = (1.0 / temp_grad_scale)
+            p_grad_scale = (1.0 / temp_grad_scale)
 
             #temp_grad_scale = ((self.thd_pos * x_numel * (s ** 2) + (self.p * (x.abs() >= self.p).float() * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
             #c_grad_scale = (self.thd_pos * self.c / temp_grad_scale).detach()
@@ -333,7 +333,7 @@ class SLsqQuan(Quantizer):
             
 
             #temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
-            temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + (self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
+            #temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + (self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
             #c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
             #p_grad_scale = (self.p / temp_grad).detach()
             #print((self.p * (2 * x.abs() - self.p) * p_mask).sum())
@@ -341,10 +341,10 @@ class SLsqQuan(Quantizer):
             #print(temp_grad)
             #temp_grad = (temp_grad ** 0.5).detach()
             #print(temp_grad)
-            p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
+            #p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
             #z_grad_scale = (self.p / temp_grad).detach()
             #z_grad_scale = 1.
-            c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
+            #c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
 
         #print(p_mask.sum() / x.numel())
         c_scale = grad_scale(self.c, c_grad_scale)
@@ -380,8 +380,6 @@ class SLsqQuan(Quantizer):
         '''
         if (len(x.shape) == 4 and x.shape[1] != 1):
             mask, temperature = self.soft_pruner(x, p_scale, z_scale)
-            mask = mask
-            temperature = temperature
             x = x * mask
         quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
         '''
