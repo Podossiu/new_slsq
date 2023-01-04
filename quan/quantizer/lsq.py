@@ -220,7 +220,8 @@ class SLsqQuan(Quantizer):
         self.hard_pruning = hard_pruning
         self.temperature = temperature
         self.register_buffer('eps', t.tensor([t.finfo(t.float32).eps]))
-        self.gamma = t.nn.Parameter(t.ones(1))
+        #self.gamma = t.nn.Parameter(t.ones(1),)
+        self.gamma = t.tensor(t.ones(1))
         self.ste = ste
         self.init_mode = False
         self.z = t.nn.Parameter(t.zeros(1))
@@ -290,11 +291,11 @@ class SLsqQuan(Quantizer):
             p_mask = (x.abs() >= self.p).float()
             s = ((self.c - self.p ) / self.thd_pos).detach()
             
-            #temp_grad_scale = ((self.thd_pos * x.numel()) ** 0.5 * self.c).detach()
+            temp_grad_scale = ((x.numel() / self.thd_pos) ** 0.5)
            
-            #c_grad_scale = ( self.thd_pos / temp_grad_scale).detach()
+            c_grad_scale = ( self.thd_pos / temp_grad_scale)
             #c_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-            #p_grad_scale = (1.0 / temp_grad_scale).detach()
+            p_grad_scale = (1.0 / temp_grad_scale)
 
             #temp_grad_scale = ((self.thd_pos * x_numel * (s ** 2) + (self.p * (x.abs() >= self.p).float() * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
             #c_grad_scale = (self.thd_pos * self.c / temp_grad_scale).detach()

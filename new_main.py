@@ -146,7 +146,10 @@ def main():
         logger.info('>>>>>>>> Hard Pruning Mode')
         
         model = model.module.to("cpu")
-        print(model)
+        for n, m in model.named_modules():
+            if hasattr(m, "c") and hasattr(m, "p"):
+                m.p.requires_grad = False
+                m.hard_pruning = True
         if args.device.gpu and not args.dataloader.serialized:
             model = t.nn.DataParallel(model, device_ids=args.device.gpu)
         print(model)

@@ -78,7 +78,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         if not hard_pruning:
             for m, t in zip(mask, temperature):
                 if m is not None:
-                    masking_loss += (m.mean() ** 2) * t.mean()
+                    masking_loss += m.mean() * t.mean()
                     only_masking_loss += m.mean().detach()
             masking_loss = masking_loss * args.lamb
             loss += masking_loss
