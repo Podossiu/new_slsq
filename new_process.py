@@ -47,6 +47,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
     top5 = AverageMeter()
     batch_time = AverageMeter()
     masking = AverageMeter()
+    only_masking = AverageMeter()
 
     model.train()
     
@@ -73,15 +74,16 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         optimizer.zero_grad()
         masking_loss_list = []
         masking_loss = 0.
+        only_masking_loss = 0.
         if not hard_pruning:
             for m, t in zip(mask, temperature):
                 if m is not None:
-                    # [] => [1]
-                    masking_loss += m.mean() * t.mean()
-
+                    masking_loss += (m.mean() ** 2) * t.mean()
+                    only_masking_loss += m.mean().detach()
             masking_loss = masking_loss * args.lamb
             loss += masking_loss
         masking.update(masking_loss, inputs.size(0))
+        only_masking.update(only_masking_loss, inputs.size(0))
         loss.backward()
         optimizer.step()
 
@@ -95,6 +97,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                     'Top5': top5,
                     'BatchTime': batch_time,
                     'Masking Loss': masking.avg,
+                    'Only Masking Loss' : only_masking.avg,
                     'LR': optimizer.param_groups[0]['lr'],
                 })   
     logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f     Masking Loss: %.5f\n',

@@ -252,6 +252,7 @@ class SLsqQuan(Quantizer):
             score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
         if not self.hard_pruning:
             temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
+            #temperature = 1e-3
             _soft_mask = t.sigmoid(score/temperature)
             #self.soft_mask = _soft_mask
             #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)

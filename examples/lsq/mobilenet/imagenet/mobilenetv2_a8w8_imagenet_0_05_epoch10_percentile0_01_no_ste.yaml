@@ -83,7 +83,7 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 1
+lamb : 0.05
 epochs: 10
 init_mode: true
 eta: 10

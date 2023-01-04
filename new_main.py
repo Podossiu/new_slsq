@@ -150,6 +150,7 @@ def main():
         if args.device.gpu and not args.dataloader.serialized:
             model = t.nn.DataParallel(model, device_ids=args.device.gpu)
         print(model)
+        model.to(args.device.type)
         # hard_pruning
         criterion = t.nn.CrossEntropyLoss().to(args.device.type)
 
