@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_no_ste_z_param
+name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_no_ste
 
 # Dataset loader
 dataloader:
@@ -60,9 +60,9 @@ quan:
     all_positive: false
     hard_pruning: false
     block_size: 4
-    temperature: 0.01
+    temperature: 0.05
     ste: false
-    z_param: true
+
   excepts:
     # Specify quantized bit width for some layers, like this:
     features.0.0:
@@ -83,8 +83,8 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 0.05
-epochs: 10
+lamb : 0.00
+epochs: 100
 init_mode: true
 eta: 10
 optimizer:

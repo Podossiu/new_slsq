@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_no_ste_z_param
+name: MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste
 
 # Dataset loader
 dataloader:
@@ -10,7 +10,7 @@ dataloader:
   # Path to dataset directory
   path: /data/imagenet
   # Size of mini-batch
-  batch_size: 128
+  batch_size: 256
   # Portion of training dataset to set aside for validation (range: [0, 1))
   val_split: 0.
 
@@ -62,10 +62,10 @@ quan:
     block_size: 4
     temperature: 0.01
     ste: false
-    z_param: true
+    z_param: false
   excepts:
     # Specify quantized bit width for some layers, like this:
-    features.0.0:
+    features.0.conv.0:
       act:
         bit:
         all_positive: false
@@ -83,7 +83,7 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 0.05
+lamb : 1
 epochs: 10
 init_mode: true
 eta: 10

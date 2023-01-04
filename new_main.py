@@ -76,32 +76,32 @@ def main():
     model = create_model(args)
     modules_to_replace = quan.find_modules_to_quantize(model, args.quan)
     model = quan.replace_module_by_names(model, modules_to_replace)
-    tbmonitor.writer.add_graph(model, input_to_model=train_loader.dataset[0][0].unsqueeze(0))
+    process.initialize_parameter(train_loader, model, args)
+
+    #tbmonitor.writer.add_graph(model, input_to_model=train_loader.dataset[0][0].unsqueeze(0))
     logger.info('Inserted quantizers into the original model')
     if args.device.gpu and not args.dataloader.serialized:
         model = t.nn.DataParallel(model, device_ids=args.device.gpu)
     model.to(args.device.type)
     start_epoch = 0
-
     if args.eval:
+        criterion = t.nn.CrossEntropyLoss().to(args.device.type)
         process.validate(test_loader, model, criterion, -1, monitors, args)
     else: # training
-        
         # soft pruning
         for n, m in model.named_modules():
             if hasattr(m, "c") and hasattr(m, "p"):
                 m.p.requires_grad = True
                 m.hard_pruning = False
-
         criterion = t.nn.CrossEntropyLoss().to(args.device.type)
 
-        optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay)
+        #optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay)
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
-        #optimizer = t.optim.SGD(model.parameters(),
-        #                        lr=args.optimizer.learning_rate,
-        #                        momentum=args.optimizer.momentum,
-        #                        weight_decay=args.optimizer.weight_decay)
+        optimizer = t.optim.SGD(model.parameters(),
+                                lr=args.optimizer.learning_rate,
+                                momentum=args.optimizer.momentum,
+                                weight_decay=args.optimizer.weight_decay)
         lr_scheduler = util.lr_scheduler(optimizer,
                                          batch_size=train_loader.batch_size,
                                          num_samples=len(train_loader.sampler),
@@ -134,7 +134,7 @@ def main():
                     if hasattr(m, "quan_w_fn") and hasattr(m.quan_w_fn, "p"):
                         if hasattr(m.quan_w_fn, "hard_pruning"):
                             m.quan_w_fn.hard_pruning = True
-                        weight_zero = (m.quan_w_fn(m.weight.detach()) == 0).sum()
+                        weight_zero = (m.quan_w_fn(m.weight.detach())[0] == 0).sum()
                         weight_numel = m.weight.detach().numel()
                         total_zero += weight_zero
                         total_numel += weight_numel
@@ -145,20 +145,21 @@ def main():
 
         logger.info('>>>>>>>> Hard Pruning Mode')
         
+        model = model.module.to("cpu")
+        print(model)
+        if args.device.gpu and not args.dataloader.serialized:
+            model = t.nn.DataParallel(model, device_ids=args.device.gpu)
+        print(model)
         # hard_pruning
-        for n, m in model.named_modules():
-            if hasattr(m, "c") and hasattr(m, "p"):
-                m.p.requires_grad = False
-                m.hard_pruning = True
         criterion = t.nn.CrossEntropyLoss().to(args.device.type)
 
-        optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay)
+        #optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay )
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
-        #optimizer = t.optim.SGD(model.parameters(),
-        #                        lr=args.optimizer.learning_rate,
-        #                        momentum=args.optimizer.momentum,
-        #                        weight_decay=args.optimizer.weight_decay)
+        optimizer = t.optim.SGD(model.parameters(),
+                                lr=args.optimizer.learning_rate,
+                                momentum=args.optimizer.momentum,
+                                weight_decay=args.optimizer.weight_decay)
         lr_scheduler = util.lr_scheduler(optimizer,
                                          batch_size=train_loader.batch_size,
                                          num_samples=len(train_loader.sampler),
@@ -196,7 +197,7 @@ def main():
                     if hasattr(m, "quan_w_fn") and hasattr(m.quan_w_fn, "p"):
                         if hasattr(m.quan_w_fn, "hard_pruning"):
                             m.quan_w_fn.hard_pruning = True
-                        weight_zero = (m.quan_w_fn(m.weight.detach()) == 0).sum()
+                        weight_zero = (m.quan_w_fn(m.weight.detach())[0] == 0).float().sum()
                         weight_numel = m.weight.detach().numel()
                         total_zero += weight_zero
                         total_numel += weight_numel

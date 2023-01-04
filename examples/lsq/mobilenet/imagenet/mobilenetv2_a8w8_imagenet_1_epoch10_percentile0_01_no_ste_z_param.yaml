@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_no_ste_z_param
+name: MobileNetv2_imagenet_a8w8_1_epoch10_percentile_0_01_no_ste_z_param
 
 # Dataset loader
 dataloader:
@@ -83,7 +83,7 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 0.05
+lamb : 1
 epochs: 10
 init_mode: true
 eta: 10

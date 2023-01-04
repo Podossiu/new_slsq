@@ -22,7 +22,7 @@ device:
   # Use CPU or GPU (choices: cpu, cuda)
   type: cuda
   # GPU device IDs to be used. Only valid when device.type is 'cuda'
-  gpu: [0]
+  gpu: [0, 1]
 
 # Dataset loader
 dataloader:

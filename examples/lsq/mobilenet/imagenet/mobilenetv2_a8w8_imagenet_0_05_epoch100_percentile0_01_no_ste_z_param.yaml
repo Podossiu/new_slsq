@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch100_percentile_0_05_no_ste_z_param
+name: MobileNetv2_imagenet_a8w8_0_01_epoch100_percentile_0_05_no_ste_z_param
 
 # Dataset loader
 dataloader:
@@ -60,7 +60,7 @@ quan:
     all_positive: false
     hard_pruning: false
     block_size: 4
-    temperature: 0.01
+    temperature: 0.05
     ste: false
     z_param: true
   excepts:
