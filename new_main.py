@@ -98,7 +98,15 @@ def main():
         #optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay)
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
-        optimizer = t.optim.SGD(model.parameters(),
+
+        optimizer_grouped_parameters = [
+            {'params' : [p for n, p in param_optimizer if not any(nd in n for nd in alpha)],
+             'weight_decay': args.optimizer.weight_decay},
+            {'params' : [p for n, p in param_optimizer if any(nd in n for nd in alpha)],
+             'weight_decay' : 0.0}
+        ]
+             
+        optimizer = t.optim.SGD(optimizer_grouped_parameters,
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
@@ -160,7 +168,16 @@ def main():
         #optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay )
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
-        optimizer = t.optim.SGD(model.parameters(),
+        param_optimizer = list(model.named_parameters())
+        alpha = ["c", "p"]
+        optimizer_grouped_parameters = [
+            {'params' : [p for n, p in param_optimizer if not any(nd in n for nd in alpha)],
+             'weight_decay': args.optimizer.weight_decay},
+            {'params' : [p for n, p in param_optimizer if any(nd in n for nd in alpha)],
+             'weight_decay' : 0.0}
+        ]
+             
+        optimizer = t.optim.SGD(optimizer_grouped_parameters,
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
