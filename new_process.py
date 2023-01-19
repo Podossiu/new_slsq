@@ -4,7 +4,6 @@ import operator
 import time
 
 import torch as t
-
 from util import AverageMeter
 
 __all__ = ['train', 'validate', 'PerformanceScoreboard']
@@ -28,12 +27,27 @@ def accuracy(output, target, topk=(1,)):
         return res
 
 
+def initialize_parameter(train_loader, model, args):
+    model.eval()
+    logger.info('==> Initialize Quantization & Pruning Parameter On CPU')
+    if args.init_mode:
+        for n,m in model.named_modules():
+            if hasattr(m, "init_mode"):
+                m.init_mode = True
+            args.init_mode = False
+
+    for batch_idx, (inputs, targets) in enumerate(train_loader):
+        outputs, mask, temperature = model(inputs[:10])
+        break
+    logger.info('==> Finish Init Parameter On CPU')
+    
 def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monitors, args, hard_pruning = False):
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
     batch_time = AverageMeter()
     masking = AverageMeter()
+    only_masking = AverageMeter()
 
     model.train()
     
@@ -45,16 +59,10 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
 
     end_time = time.time()
     for batch_idx, (inputs, targets) in enumerate(train_loader):
-        init_mode = args.init_mode
-        if args.init_mode:
-            for n, m in model.named_modules():
-                if hasattr(m, "init_mode"):
-                    m.init_mode = True
-            args.init_mode = False
         inputs = inputs.to(args.device.type)
         targets = targets.to(args.device.type)
 
-        outputs = model(inputs)
+        outputs, mask, temperature = model(inputs)
         loss = criterion(outputs, targets)
         
         acc1, acc5 = accuracy(outputs.data, targets.data, topk=(1, 5))
@@ -63,20 +71,35 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         top5.update(acc5.item(), inputs.size(0))
         if lr_scheduler is not None:
             lr_scheduler.step(epoch, batch_idx)
-
         optimizer.zero_grad()
-
         masking_loss_list = []
-        if regularizer and not init_mode:
-            for n, m in model.named_modules():
-                if hasattr(m, "soft_mask") and m.soft_mask is not None:
-                    masking_loss_list.append(m.soft_mask.mean())
-            masking_loss = t.stack(masking_loss_list)
-            masking_loss = masking_loss.mean()
-            #masking_loss = t.linalg.norm(t.stack(masking_loss_list), dim =0, ord = 2)
+        masking_loss = 0.
+        count = 0.
+        only_masking_loss = 0.
+        '''
+        if not hard_pruning:
+            for m, t in zip(mask, temperature):
+                if m is not None:
+                    #masking_loss += m.mean() #* t.mean()
+                    only_masking_loss += m.mean().detach()
             masking_loss = masking_loss * args.lamb
             loss += masking_loss
-            masking.update(masking_loss.item(), inputs.size(0))
+        '''
+        if not hard_pruning:
+            masking_loss = [m.sum() for m, t in zip(mask, temperature) if m is not None]
+            count = [t.tensor(m.numel()) for m in mask if m is not None]
+            masking_loss = t.stack(masking_loss).sum() / t.stack(count).sum()
+            #masking_loss = t.stack(masking_loss).mean()
+            only_masking_loss = [m.sum().detach() for m, t in zip(mask, temperature) if m is not None]
+            only_masking_loss = t.stack(only_masking_loss).sum() / t.stack(count).sum()
+            #only_masking_loss = t.stack(only_masking_loss).mean()
+            #only_masking_loss = masking_loss.detach()
+            #only_masking_loss = t.stack([m.sum() for m in mask if m is not None]).mean()
+            #only_masking_loss = masking_loss
+            masking_loss = masking_loss * args.lamb
+            loss += masking_loss
+        masking.update(masking_loss, inputs.size(0))
+        only_masking.update(only_masking_loss, inputs.size(0))
         loss.backward()
         optimizer.step()
 
@@ -89,10 +112,12 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                     'Top1': top1,
                     'Top5': top5,
                     'BatchTime': batch_time,
+                    'Masking Loss': masking.avg,
+                    'Only Masking Loss' : only_masking.val,
                     'LR': optimizer.param_groups[0]['lr'],
                 })   
-    logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f\n',
-                top1.avg, top5.avg, losses.avg)
+    logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f     Masking Loss: %.5f\n',
+                top1.avg, top5.avg, losses.avg, masking.avg)
     return top1.avg, top5.avg, losses.avg, masking.avg
 
 
@@ -115,7 +140,7 @@ def validate(data_loader, model, criterion, epoch, monitors, args, hard_pruning 
             inputs = inputs.to(args.device.type)
             targets = targets.to(args.device.type)
             
-            outputs = model(inputs)
+            outputs, mask, temperature = model(inputs)
             loss = criterion(outputs, targets)
             acc1, acc5 = accuracy(outputs.data, targets.data, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
@@ -142,7 +167,7 @@ def validate(data_loader, model, criterion, epoch, monitors, args, hard_pruning 
     for n, m in model.named_modules():
         if hasattr(m, "quan_w_fn") and hasattr(m.quan_w_fn, "p"):
             m.quan_w_fn.hard_pruning = True
-            weight_zero = (m.quan_w_fn(m.weight.detach())==0).sum()
+            weight_zero = (m.quan_w_fn(m.weight.detach())[0]==0).float().sum()
             weight_numel = m.weight.detach().numel()
             sparsity = weight_zero / weight_numel
             total_zero += weight_zero

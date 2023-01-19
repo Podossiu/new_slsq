@@ -60,7 +60,7 @@ quan:
     all_positive: false
     hard_pruning: false
     block_size: 4
-    temperature: 0.05
+    temperature: 0.01
     ste: false
     z_param: true
   excepts:
@@ -84,7 +84,7 @@ quan:
 eval: false
 hard_pruning: false
 lamb : 0.05
-epochs: 100
+epochs: 10
 init_mode: true
 eta: 10
 optimizer:

@@ -6,6 +6,7 @@ arXiv preprint arXiv:1801.04381.
 import from https://github.com/tonylins/pytorch-mobilenet-v2
 """
 from torch.ao.quantization import QuantStub, DeQuantStub
+from quan.func import QuanConv2d, QuanLinear
 import torch
 import torch.nn as nn
 from torch.hub import load_state_dict_from_url
@@ -49,6 +50,58 @@ def _make_divisible(v, divisor, min_value=None):
     return new_v
 
 
+class conv_3x3_bn(nn.Module):
+    def __init__(self, inp, oup, stride):
+        super(conv_3x3_bn, self).__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(inp, oup, 3, stride, 1,bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True),
+        )
+    def _forward(self, x):
+        mask = ()
+        temperature = ()
+        for module in self.conv:
+            x = module(x)
+            if isinstance(module, QuanConv2d) or isinstance(module, QuanLinear):
+                if len(x) > 1:
+                    mask += (x[1],)
+                    temperature += (x[2],)
+                x = x[0]
+        return x, mask, temperature
+
+    def forward(self, x):
+        out, mask,temperature = self._forward(x)
+        return out, mask, temperature
+
+class conv_1x1_bn(nn.Module):
+    def __init__(self, inp, oup):
+        super(conv_1x1_bn, self).__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(inp, oup, 1, 1, 0,bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True),
+        )
+    def _forward(self, x):
+        mask = ()
+        temperature = ()
+        for module in self.conv:
+            x = module(x)
+            if isinstance(module, QuanConv2d) or isinstance(module, QuanLinear):
+                if len(x) > 1:
+                    mask += (x[1],)
+                    temperature += (x[2],)
+                x = x[0]
+        return x, mask, temperature
+
+    def forward(self, x):
+        out, mask,temperature = self._forward(x)
+        return out, mask, temperature
+
+
+'''
 def conv_3x3_bn(inp, oup, stride):
     return nn.Sequential(
         nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
@@ -63,7 +116,7 @@ def conv_1x1_bn(inp, oup):
         nn.BatchNorm2d(oup),
         nn.ReLU(inplace=True)
     )
-
+'''
 
 class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio):
@@ -98,11 +151,24 @@ class InvertedResidual(nn.Module):
                 nn.BatchNorm2d(oup),
             )
 
+    def _forward(self, x):
+        mask = ()
+        temperature = ()
+        for module in self.conv:
+            x = module(x)
+            if isinstance(module, QuanConv2d) or isinstance(module, QuanLinear):
+                if len(x) > 1:
+                    mask += (x[1],)
+                    temperature += (x[2],)
+                x = x[0]
+        return x, mask, temperature
+
     def forward(self, x):
+        out, mask,temperature = self._forward(x)
         if self.identity:
-            return x + self.conv(x)
+            return x + out, mask, temperature
         else:
-            return self.conv(x)
+            return out, mask, temperature
 
 
 class MobileNetV2(nn.Module):
@@ -139,13 +205,26 @@ class MobileNetV2(nn.Module):
         self.dropout = nn.Dropout(p = 0.2)       
         self._initialize_weights()
     def forward(self, x):
-        x = self.features(x)
-        x = self.conv(x)
+        masks = ()
+        temperatures = ()
+        for m in self.features:
+            x, mask, temperature = m(x)
+            masks += mask
+            temperatures += temperature
+        #x = self.features(x)
+        x, mask, temperature = self.conv(x)
+        masks += mask
+        temperatures += temperature
+
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.dropout(x)
-        x = self.classifier(x)
-        return x
+
+        x, mask, temperature = self.classifier(x)
+        masks += (mask,)
+        temperatures += (temperature,)
+        
+        return x, masks, temperatures
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -183,7 +262,16 @@ def _mobilenetv2(arch, width_mult, pretrained, progress,**kwargs):
     if pretrained:
         print("********************pre-trained*****************")
         state_dict = load_state_dict_from_url(model_urls[arch], progress = progress)
-        model.load_state_dict(state_dict)
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            new_k = k.split('.')
+            if new_k[0] == "features" and new_k[1] == "0":
+                new_k.insert(2, "conv")
+            elif new_k[0] =="conv":
+                new_k.insert(1, "conv")
+            new_k = ".".join(new_k)
+            new_state_dict[new_k] = v
+        model.load_state_dict(new_state_dict)
     return model
 
 def mobilenetv2(pretrained = True, progress = True, **kwargs):
