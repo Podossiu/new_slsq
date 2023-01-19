@@ -89,8 +89,10 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
             masking_loss = [m.sum() for m, t in zip(mask, temperature) if m is not None]
             count = [t.tensor(m.numel()) for m in mask if m is not None]
             masking_loss = t.stack(masking_loss).sum() / t.stack(count).sum()
+            #masking_loss = t.stack(masking_loss).mean()
             only_masking_loss = [m.sum().detach() for m, t in zip(mask, temperature) if m is not None]
             only_masking_loss = t.stack(only_masking_loss).sum() / t.stack(count).sum()
+            #only_masking_loss = t.stack(only_masking_loss).mean()
             #only_masking_loss = masking_loss.detach()
             #only_masking_loss = t.stack([m.sum() for m in mask if m is not None]).mean()
             #only_masking_loss = masking_loss
@@ -111,7 +113,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                     'Top5': top5,
                     'BatchTime': batch_time,
                     'Masking Loss': masking.avg,
-                    'Only Masking Loss' : only_masking.avg,
+                    'Only Masking Loss' : only_masking.val,
                     'LR': optimizer.param_groups[0]['lr'],
                 })   
     logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f     Masking Loss: %.5f\n',

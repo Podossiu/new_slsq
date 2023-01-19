@@ -40,8 +40,8 @@ def w_quant(input, c, p, thd):
     
     p_mask = (input.abs() < p).float()
 
-    v_t = (input.abs() - p) * (1 - p_mask) * sign
-    v_q = t.clamp(v_t / s, -thd, thd)
+    v_t = (input.abs() - p) * (1. - p_mask) * sign
+    v_q = t.clamp(v_t / (s+eps), -thd, thd)
     #v_q = t.clamp(v_t / c, -thd, thd)
     v_q = (v_q.round() - v_q).detach() + v_q
     v_dq = v_q * s
@@ -100,9 +100,9 @@ class w_quan(t.autograd.Function):
     def forward(ctx, input, c, p, thd):
         eps = t.tensor([t.finfo(t.float32).eps], device = input.device)
         sign = input.sign()
-        s =  (c - p + eps) / thd
+        s =  (c - p) / thd
         
-        quant_x = (input.abs() - p) / s
+        quant_x = (input.abs() - p) / (s + eps)
 
         quant_x = t.clamp(quant_x, 0, thd) * sign
 
@@ -207,7 +207,7 @@ class weight_quant(t.autograd.Function):
         return grad_input, grad_c, grad_p, None
 
 class SLsqQuan(Quantizer):
-    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = True, z_param = False):
+    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = False, z_param = False):
         super().__init__(bit)
         
         self.thd_neg = -2 ** (bit - 1) + 1
@@ -233,34 +233,65 @@ class SLsqQuan(Quantizer):
             self.weight_quant = w_quant
         
     def calculate_block_sparsity(self,x):
-        co, ci, kh, kw = x.shape
-        x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw).detach()
-        if self.z_param:
-            score = (x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p+self.z)).detach()
-        else:
-            score = (x_reshape.abs().mean(dim = 1, keepdim = True) - self.p).detach()
-        hard_mask = (score > 0).float().detach()
+        with t.no_grad():
+            if len(x.shape) == 4:
+                co, ci, kh, kw = x.shape
+                x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw).detach()
+                if self.z_param:
+                    score = (x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p+self.z)).detach()
+                else:
+                    score = (x_reshape.abs().mean(dim = 1, keepdim = True) - self.p).detach()
+                hard_mask = (score > 0).float().detach()
+
+            elif len(x.shape) == 2:
+                co, ci = x.shape
+
+                x_reshape = x.reshape(co // self.block_size, self.block_size, ci)
+                if self.z_param:
+                    score = x_reshape.abs().mean(dim = 1,keepdim = True) - (self.p + self.z)
+                else:
+                    score = x_reshape.abs().mean(dim = 1,keepdim = True) - self.p
+                hard_mask = (score > 0).float().detach()
         return hard_mask.sum(), hard_mask.numel()
 
     def soft_pruner(self, x, p, z):
+        if len(x.shape) == 4:
+            co, ci, kh, kw = x.shape
+            
+            x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw)
+            if self.z_param:
+                score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + z)
+            else:
+                score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
+            if not self.hard_pruning:
+                temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
+                #temperature = 1e-3
+                _soft_mask = t.sigmoid(score/temperature)
+                #self.soft_mask = _soft_mask
+                #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
+                _soft_mask = _soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co, ci, kh, kw)
+                return _soft_mask, temperature
+            hard_mask = (score > 0).float()
+            hard_mask = hard_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
 
-        co, ci, kh, kw = x.shape
-        
-        x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw)
-        if self.z_param:
-            score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + z)
-        else:
-            score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
-        if not self.hard_pruning:
-            temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
-            #temperature = 1e-3
-            _soft_mask = t.sigmoid(score/temperature)
-            #self.soft_mask = _soft_mask
-            #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
-            _soft_mask = _soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co, ci, kh, kw)
-            return _soft_mask, temperature
-        hard_mask = (score > 0).float()
-        hard_mask = hard_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
+        elif len(x.shape) == 2:
+            co, ci = x.shape
+
+            x_reshape = x.reshape(co // self.block_size, self.block_size, ci)
+            if self.z_param:
+                score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + z)
+            else:
+                score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
+            if not self.hard_pruning:
+                temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
+                #temperature = 1e-3
+                _soft_mask = t.sigmoid(score/temperature)
+                #self.soft_mask = _soft_mask
+                #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
+                _soft_mask = _soft_mask.repeat(1, self.block_size, 1).reshape(co, ci)
+                return _soft_mask, temperature
+            hard_mask = (score > 0).float()
+            hard_mask = hard_mask.repeat(1, self.block_size, 1).reshape(co,ci)
         return hard_mask, None
 
     def init_from(self, x, *args, **kwargs):
@@ -287,7 +318,6 @@ class SLsqQuan(Quantizer):
             #s_grad_scale = 1.0 / ((x.numel()) ** 0.5)
             s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
         else:
-            x_numel = (x.abs() >= self.p).float().sum().detach()
             p_mask = (x.abs() >= self.p).float()
             s = ((self.c - self.p ) / self.thd_pos).detach()
             
@@ -332,8 +362,9 @@ class SLsqQuan(Quantizer):
             #z_grad_scale = 1.
             
 
-            #temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
-            temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + (self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
+            temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
+            assert temp_grad >= 0, "temp_grad needs to be not a nan value. however, temp_grad : {} pruning point : {} pruning_mask : {} scaling factor : {} p_mask * thd_pos * s**2 : {} {}"\
+            .format(temp_grad.item(), self.p.item(), p_mask.sum().item(), (p_mask.sum() * self.thd_pos * (s **2)).item(), (self.p * (2 * x.abs() - self.p) * p_mask).sum().item())
             #c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
             #p_grad_scale = (self.p / temp_grad).detach()
             #print((self.p * (2 * x.abs() - self.p) * p_mask).sum())
@@ -342,10 +373,12 @@ class SLsqQuan(Quantizer):
             #temp_grad = (temp_grad ** 0.5).detach()
             #print(temp_grad)
             p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
+            #p_grad_scale_2 = p_grad_scale * (x.nueml() * self.temperature) * 4 / p_mask.sum()
             #z_grad_scale = (self.p / temp_grad).detach()
             #z_grad_scale = 1.
             c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
-
+            #c_grad_scale = 1.
+            #p_grad_scale = 1.
         #print(p_mask.sum() / x.numel())
         c_scale = grad_scale(self.c, c_grad_scale)
         p_scale = grad_scale(self.p, p_grad_scale)
@@ -378,7 +411,7 @@ class SLsqQuan(Quantizer):
             quant_x = (t.round(quant_x) - quant_x).detach() + quant_x
             quant_x = quant_x * s
         '''
-        if (len(x.shape) == 4 and x.shape[1] != 1):
+        if (len(x.shape) == 4 and x.shape[1] != 1) or (len(x.shape) == 2):
             mask, temperature = self.soft_pruner(x, p_scale, z_scale)
             x = x * mask
         quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)

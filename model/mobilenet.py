@@ -213,15 +213,17 @@ class MobileNetV2(nn.Module):
             temperatures += temperature
         #x = self.features(x)
         x, mask, temperature = self.conv(x)
+        masks += mask
+        temperatures += temperature
+
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.dropout(x)
-        x = self.classifier(x)
-        if isinstance(x, tuple):
-            if len(x) > 1:
-                masks += (x[1],)
-                temperatures += (x[2],)
-            x = x[0]
+
+        x, mask, temperature = self.classifier(x)
+        masks += (mask,)
+        temperatures += (temperature,)
+        
         return x, masks, temperatures
 
     def _initialize_weights(self):

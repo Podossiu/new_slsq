@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste
+name: MobileNetv2_imagenet_a8w8_1_epoch150_percentile_0_01_no_ste
 
 # Dataset loader
 dataloader:
@@ -16,9 +16,9 @@ dataloader:
 
 resume:
   # Path to a checkpoint to be loaded. Leave blank to skip
-  path: out/MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste_20230105-052041/MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste_checkpoint.pth.tar
+  path:
   # Resume model parameters only
-  lean: true
+  lean: false
 
 #============================ Model ============================================
 
@@ -65,26 +65,26 @@ quan:
     z_param: false
   excepts:
     # Specify quantized bit width for some layers, like this:
-    features.0.conv.0:
+    None:
       act:
         bit:
         all_positive: false
       weight:
         bit:
-    classifier:
+    None:
       act:
         bit:
       weight:
         bit:
-
 #============================ Training / Evaluation ============================
 
 # Evaluate the model without training
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 3
-epochs: 100
+lamb : 5
+soft_epochs: 30
+hard_epochs: 150
 init_mode: true
 eta: 10
 optimizer:
