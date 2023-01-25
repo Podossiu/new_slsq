@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch as t
 import yaml
-
+import gc
 import new_process as process
 import quan
 import util
@@ -49,8 +49,8 @@ def main():
         yaml.safe_dump(args, yaml_file)
 
     pymonitor = util.ProgressMonitor(logger)
-    tbmonitor = util.TensorBoardMonitor(logger, log_dir)
-    monitors = [pymonitor, tbmonitor]
+    #tbmonitor = util.TensorBoardMonitor(logger, log_dir)
+    monitors = [pymonitor]
 
     if args.device.type == 'cpu' or not t.cuda.is_available() or args.device.gpu == []:
         args.device.gpu = []
@@ -98,15 +98,15 @@ def main():
         #optimizer = t.optim.AdamW(model.parameters(), lr=args.optimizer.learning_rate, weight_decay = args.optimizer.weight_decay)
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
-
+        '''
         optimizer_grouped_parameters = [
             {'params' : [p for n, p in param_optimizer if not any(nd in n for nd in alpha)],
              'weight_decay': args.optimizer.weight_decay},
             {'params' : [p for n, p in param_optimizer if any(nd in n for nd in alpha)],
              'weight_decay' : 0.0}
         ]
-             
-        optimizer = t.optim.SGD(optimizer_grouped_parameters,
+        '''  
+        optimizer = t.optim.SGD(model.parameters(),
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
@@ -127,9 +127,9 @@ def main():
                     "v_top5" : v_top5, "v_loss" : v_loss, "sparsity" : sparsity, "masking_loss" : masking_loss}
             wandb.log(log_data)
             pruning_log(model)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
 
             perf_scoreboard.update(v_top1, v_top5, epoch, sparsity)
             is_best = perf_scoreboard.is_best(epoch)
@@ -177,7 +177,7 @@ def main():
              'weight_decay' : 0.0}
         ]
              
-        optimizer = t.optim.SGD(optimizer_grouped_parameters,
+        optimizer = t.optim.SGD(model.parameters(),
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
@@ -197,9 +197,9 @@ def main():
                     "v_top5" : v_top5, "v_loss" : v_loss, "sparsity" : sparsity, "masking_loss" : masking_loss}
             wandb.log(log_data)
             pruning_log(model)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
-            tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
+            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
 
             perf_scoreboard.update(v_top1, v_top5, epoch, sparsity)
             is_best = perf_scoreboard.is_best(epoch)

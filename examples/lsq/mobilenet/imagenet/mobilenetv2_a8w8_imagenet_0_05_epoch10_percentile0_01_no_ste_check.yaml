@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste
+name: MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste_check
 
 # Dataset loader
 dataloader:
@@ -16,7 +16,7 @@ dataloader:
 
 resume:
   # Path to a checkpoint to be loaded. Leave blank to skip
-  path:
+  path: /home/ilena7440/new_slsq/out/MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste_20230111-214839/MobileNetv2_imagenet_a8w8_0_05_epoch10_percentile_0_01_no_ste_best.pth.tar
   # Resume model parameters only
   lean: false
 

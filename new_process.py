@@ -59,6 +59,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
 
     end_time = time.time()
     for batch_idx, (inputs, targets) in enumerate(train_loader):
+        print(inputs.shape)
         inputs = inputs.to(args.device.type)
         targets = targets.to(args.device.type)
 
@@ -137,8 +138,8 @@ def validate(data_loader, model, criterion, epoch, monitors, args, hard_pruning 
         with t.no_grad():
             inputs = inputs.to(args.device.type)
             targets = targets.to(args.device.type)
-            
             outputs, mask, temperature = model(inputs)
+
             loss = criterion(outputs, targets)
             acc1, acc5 = accuracy(outputs.data, targets.data, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
