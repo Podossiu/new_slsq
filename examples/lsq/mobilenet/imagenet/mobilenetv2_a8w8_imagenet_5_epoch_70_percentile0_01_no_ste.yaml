@@ -40,7 +40,7 @@ quan:
     # Quantizer type (choices: lsq)
     mode: lsq
     # Bit width of quantized activation
-    bit: 7
+    bit: 8
     # Each output channel uses its own scaling factor
     per_channel: false
     # Whether to use symmetric quantization
@@ -83,7 +83,7 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 4
+lamb : 5
 soft_epochs: 30
 hard_epochs: 150
 init_mode: true
@@ -118,13 +118,13 @@ lr_scheduler:
   # gamma: 0.95
 
   # Cosine annealing
-  #mode: cos
-  #lr_min: 0
-  #cycle: 0.95
+  mode: cos
+  lr_min: 0
+  cycle: 1
 
   # Cosine annealing with warm restarts
-  mode: cos_warm_restarts
-  lr_min: 0
-  cycle: 10
-  cycle_scale: 2
-  amp_scale: 0.5
+  #mode: cos_warm_restarts
+  #lr_min: 0
+  #cycle: 10
+  #cycle_scale: 2
+  #amp_scale: 0.5

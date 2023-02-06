@@ -69,8 +69,6 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         losses.update(loss.item(), inputs.size(0))
         top1.update(acc1.item(), inputs.size(0))
         top5.update(acc5.item(), inputs.size(0))
-        if lr_scheduler is not None:
-            lr_scheduler.step(epoch, batch_idx)
         optimizer.zero_grad()
         masking_loss_list = []
         masking_loss = 0.
@@ -116,6 +114,8 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                     'Only Masking Loss' : only_masking.val,
                     'LR': optimizer.param_groups[0]['lr'],
                 })   
+    if lr_scheduler is not None:
+        lr_scheduler.step()
     logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f     Masking Loss: %.5f\n',
                 top1.avg, top5.avg, losses.avg, masking.avg)
     return top1.avg, top5.avg, losses.avg, masking.avg
