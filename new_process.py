@@ -74,6 +74,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         masking_loss = 0.
         count = 0.
         only_masking_loss = 0.
+
         '''
         if not hard_pruning:
             for m, t in zip(mask, temperature):
