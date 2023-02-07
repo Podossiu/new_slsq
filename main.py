@@ -12,6 +12,7 @@ import os
 import random
 import numpy as np
 import wandb
+
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
@@ -107,10 +108,11 @@ def main():
     #                        momentum=args.optimizer.momentum,
     #                        weight_decay=args.optimizer.weight_decay)
     print(args.lr_scheduler)
-    lr_scheduler = util.lr_scheduler(optimizer,
-                                     batch_size=train_loader.batch_size,
-                                     num_samples=len(train_loader.sampler),
-                                     **args.lr_scheduler)
+    #lr_scheduler = util.lr_scheduler(optimizer,
+    #                                 batch_size=train_loader.batch_size,
+    #                                 num_samples=len(train_loader.sampler),
+    #                                 **args.lr_scheduler)
+    lr_scheduler = t.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = args.soft_epochs, eta_min = 0) 
     logger.info(('Optimizer: %s' % optimizer).replace('\n', '\n' + ' ' * 11))
     logger.info('LR scheduler: %s\n' % lr_scheduler)
 

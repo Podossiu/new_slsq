@@ -362,9 +362,11 @@ class SLsqQuan(Quantizer):
             #z_grad_scale = 1.
             
 
-            temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
-            assert temp_grad >= 0, "temp_grad needs to be not a nan value. however, temp_grad : {} pruning point : {} pruning_mask : {} scaling factor : {} p_mask * thd_pos * s**2 : {} {}"\
-            .format(temp_grad.item(), self.p.item(), p_mask.sum().item(), (p_mask.sum() * self.thd_pos * (s **2)).item(), (self.p * (2 * x.abs() - self.p) * p_mask).sum().item())
+            #temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
+            #temp_grad_1 = (p_mask.sum() * self.thd_pos * (s ** 2))
+            #temp_grad_2 = (self.p * ( 2 * x.abs() - self.p) * p_mask).sum()
+            #temp_grad = ((temp_grad_1 + temp_grad_2) ** 0.5).detach()
+            #assert temp_grad >= 0, "temp_grad needs to be not a nan value. temp_grad_1 = " + str(temp_grad_1) + "temp_grad_2 = " + str(temp_grad_2) 
             #c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
             #p_grad_scale = (self.p / temp_grad).detach()
             #print((self.p * (2 * x.abs() - self.p) * p_mask).sum())
@@ -372,13 +374,13 @@ class SLsqQuan(Quantizer):
             #print(temp_grad)
             #temp_grad = (temp_grad ** 0.5).detach()
             #print(temp_grad)
-            p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
+            #p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
             #p_grad_scale_2 = p_grad_scale * (x.nueml() * self.temperature) * 4 / p_mask.sum()
             #z_grad_scale = (self.p / temp_grad).detach()
             #z_grad_scale = 1.
-            c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
-            #c_grad_scale = 1.
-            #p_grad_scale = 1.
+            #c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
+            c_grad_scale = 1.
+            p_grad_scale = 1.
         #print(p_mask.sum() / x.numel())
         c_scale = grad_scale(self.c, c_grad_scale)
         p_scale = grad_scale(self.p, p_grad_scale)

@@ -115,10 +115,11 @@ def main():
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
-        lr_scheduler = util.lr_scheduler(optimizer,
-                                         batch_size=train_loader.batch_size,
-                                         num_samples=len(train_loader.sampler),
-                                         **args.lr_scheduler)
+        #lr_scheduler = util.lr_scheduler(optimizer,
+        #                                 batch_size=train_loader.batch_size,
+        #                                 num_samples=len(train_loader.sampler),
+        #                                 **args.lr_scheduler)
+        lr_scheduler = t.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = args.soft_epochs)
         logger.info(('Optimizer: %s' % optimizer).replace('\n', '\n' + ' ' * 11))
         logger.info('LR scheduler: %s\n' % lr_scheduler)
         
@@ -132,9 +133,6 @@ def main():
                     "v_top5" : v_top5, "v_loss" : v_loss, "sparsity" : sparsity, "masking_loss" : masking_loss}
             wandb.log(log_data)
             pruning_log(model)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
 
             perf_scoreboard.update(v_top1, v_top5, epoch, sparsity)
             is_best = perf_scoreboard.is_best(epoch)
@@ -165,7 +163,6 @@ def main():
                 m.hard_pruning = True
         if args.device.gpu and not args.dataloader.serialized:
             model = t.nn.DataParallel(model, device_ids=args.device.gpu)
-        print(model)
         model.to(args.device.type)
         # hard_pruning
         criterion = t.nn.CrossEntropyLoss().to(args.device.type)
@@ -187,10 +184,11 @@ def main():
                                 lr=args.optimizer.learning_rate,
                                 momentum=args.optimizer.momentum,
                                 weight_decay=args.optimizer.weight_decay)
-        lr_scheduler = util.lr_scheduler(optimizer,
-                                         batch_size=train_loader.batch_size,
-                                         num_samples=len(train_loader.sampler),
-                                         **args.lr_scheduler)
+        #lr_scheduler = util.lr_scheduler(optimizer,
+        #                                 batch_size=train_loader.batch_size,
+        #                                 num_samples=len(train_loader.sampler),
+        #                                 **args.lr_scheduler)
+        lr_scheduler = t.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max = args.hard_epochs)
         logger.info(('Optimizer: %s' % optimizer).replace('\n', '\n' + ' ' * 11))
         logger.info('LR scheduler: %s\n' % lr_scheduler)
         perf_scoreboard = process.PerformanceScoreboard(args.log.num_best_scores)
@@ -203,9 +201,6 @@ def main():
                     "v_top5" : v_top5, "v_loss" : v_loss, "sparsity" : sparsity, "masking_loss" : masking_loss}
             wandb.log(log_data)
             pruning_log(model)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Loss', {'train': t_loss, 'val': v_loss}, epoch)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top1', {'train': t_top1, 'val': v_top1}, epoch)
-            #tbmonitor.writer.add_scalars('Train_vs_Validation/Top5', {'train': t_top5, 'val': v_top5}, epoch)
 
             perf_scoreboard.update(v_top1, v_top5, epoch, sparsity)
             is_best = perf_scoreboard.is_best(epoch)

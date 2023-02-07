@@ -69,13 +69,12 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         losses.update(loss.item(), inputs.size(0))
         top1.update(acc1.item(), inputs.size(0))
         top5.update(acc5.item(), inputs.size(0))
-        if lr_scheduler is not None:
-            lr_scheduler.step(epoch, batch_idx)
         optimizer.zero_grad()
         masking_loss_list = []
         masking_loss = 0.
         count = 0.
         only_masking_loss = 0.
+
         '''
         if not hard_pruning:
             for m, t in zip(mask, temperature):
@@ -86,7 +85,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
             loss += masking_loss
         '''
         if not hard_pruning:
-            masking_loss = [m.sum() for m, t in zip(mask, temperature) if m is not None]
+            masking_loss = [m.sum() * t for m, t in zip(mask, temperature) if m is not None]
             count = [t.tensor(m.numel()) for m in mask if m is not None]
             masking_loss = t.stack(masking_loss).sum() / t.stack(count).sum()
             #masking_loss = t.stack(masking_loss).mean()
@@ -113,9 +112,11 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
                     'Top5': top5,
                     'BatchTime': batch_time,
                     'Masking Loss': masking.avg,
-                    'Only Masking Loss' : only_masking.val,
+                    'Only Masking Loss' : only_masking.avg,
                     'LR': optimizer.param_groups[0]['lr'],
                 })   
+    if lr_scheduler is not None:
+        lr_scheduler.step()
     logger.info('==> Top1: %.3f    Top5: %.3f    Loss: %.3f     Masking Loss: %.5f\n',
                 top1.avg, top5.avg, losses.avg, masking.avg)
     return top1.avg, top5.avg, losses.avg, masking.avg

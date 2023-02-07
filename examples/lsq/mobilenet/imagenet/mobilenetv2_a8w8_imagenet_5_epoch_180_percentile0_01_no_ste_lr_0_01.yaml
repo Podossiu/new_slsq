@@ -1,5 +1,5 @@
 # Experiment name
-name: MobileNetv2_imagenet_a8w8_5_epoch150_percentile_0_01_no_ste
+name: MobileNetv2_imagenet_a8w8_5_epoch180_percentile_0_01_no_ste_lr_0_01
 
 # Dataset loader
 dataloader:
@@ -40,7 +40,7 @@ quan:
     # Quantizer type (choices: lsq)
     mode: lsq
     # Bit width of quantized activation
-    bit: 7
+    bit: 8
     # Each output channel uses its own scaling factor
     per_channel: false
     # Whether to use symmetric quantization
@@ -65,13 +65,13 @@ quan:
     z_param: false
   excepts:
     # Specify quantized bit width for some layers, like this:
-    features.0.0:
+     None:
       act:
         bit:
         all_positive: false
       weight:
         bit:
-    classifier:
+     None:
       act:
         bit:
       weight:
@@ -83,13 +83,13 @@ quan:
 # If this field is true, all the bellowing options will be ignored
 eval: false
 hard_pruning: false
-lamb : 4
+lamb : 1
 soft_epochs: 30
 hard_epochs: 150
 init_mode: true
 eta: 10
 optimizer:
-  learning_rate: 0.005
+  learning_rate: 0.0001
   momentum: 0.9
   weight_decay: 4.0e-05
 
@@ -118,13 +118,13 @@ lr_scheduler:
   # gamma: 0.95
 
   # Cosine annealing
-  #mode: cos
-  #lr_min: 0
-  #cycle: 0.95
+  mode: cos
+  lr_min: 0
+  cycle: 1
 
   # Cosine annealing with warm restarts
-  mode: cos_warm_restarts
-  lr_min: 0
-  cycle: 10
-  cycle_scale: 2
-  amp_scale: 0.5
+  #mode: cos_warm_restarts
+  #lr_min: 0
+  #cycle: 10
+  #cycle_scale: 2
+  #amp_scale: 0.5
