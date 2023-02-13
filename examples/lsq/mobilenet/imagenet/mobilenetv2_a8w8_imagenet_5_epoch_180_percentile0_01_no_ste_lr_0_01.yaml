@@ -60,7 +60,7 @@ quan:
     all_positive: false
     hard_pruning: false
     block_size: 4
-    temperature: 0.01
+    temperature: 0.001
     ste: false
     z_param: false
   excepts:

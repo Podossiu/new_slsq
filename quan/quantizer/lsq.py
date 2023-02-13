@@ -2,6 +2,25 @@ import torch as t
 import math
 from .quantizer import Quantizer
 import numpy as np
+
+
+class BinaryStep(t.autograd.Function):
+    @staticmethod 
+    def forward(ctx, input):
+        ctx.save_for_backward(input)
+        return (input>0.).float()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, = ctx.saved_tensors
+        grad_input = grad_output.clone()
+        zero_index = t.abs(input) > 1
+        middle_index = (t.abs(input) <= 1) * (t.abs(input) > 0.4)
+        additional = 2-4*t.abs(input)
+        additional[zero_index] = 0.
+        additional[middle_index] = 0.4
+        return grad_input*additional
+
 def soft_pruner(x, block_size, p):
     return x
 
@@ -207,50 +226,51 @@ class weight_quant(t.autograd.Function):
         return grad_input, grad_c, grad_p, None
 
 class SLsqQuan(Quantizer):
-    def __init__(self, bit, per_channel=False, symmetric = False, all_positive = False, hard_pruning = False, block_size = 4, temperature = 1e-3, duq = False,ste = False, z_param = False):
+    def __init__(self, bit, per_channel=False, symmetric=False, all_positive=False, hard_pruning=False, block_size=4, 
+                temperature=1e-3, ste=False, z_param=False):
         super().__init__(bit)
-        
+
         self.thd_neg = -2 ** (bit - 1) + 1
         self.thd_pos = 2 ** (bit - 1) - 1
+
         self.per_channel = per_channel
-        self.p= t.nn.Parameter(t.zeros(1))
+        self.p = t.nn.Parameter(t.zeros(1))
         self.c = t.nn.Parameter(t.ones(1))
-        self.soft_mask = None
         self.block_size = block_size
         self.hard_pruning = hard_pruning
-        self.temperature = temperature
+        self.temperature = t.tensor([temperature])
         self.register_buffer('eps', t.tensor([t.finfo(t.float32).eps]))
-        #self.gamma = t.nn.Parameter(t.ones(1),)
+        
         self.gamma = t.tensor(t.ones(1))
         self.ste = ste
         self.init_mode = False
         self.z = t.nn.Parameter(t.zeros(1))
         self.z_param = z_param
-        self.temperature_value = None
-        if ste :
+        
+        if ste:
             self.weight_quant = ste_w_quant
         else:
             self.weight_quant = w_quant
-        
-    def calculate_block_sparsity(self,x):
+        self.weight_pruner = BinaryStep.apply
+    def calculate_block_sparsity(self, x):
         with t.no_grad():
             if len(x.shape) == 4:
                 co, ci, kh, kw = x.shape
                 x_reshape = x.reshape(co // self.block_size, self.block_size, ci, kh, kw).detach()
                 if self.z_param:
-                    score = (x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p+self.z)).detach()
+                    score = (x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p + self.z)).detach()
                 else:
-                    score = (x_reshape.abs().mean(dim = 1, keepdim = True) - self.p).detach()
+                    score = (x_reshape.abs().mean(dim = 1, keepdim = True)) - (self.p).detach()
                 hard_mask = (score > 0).float().detach()
-
+            
             elif len(x.shape) == 2:
                 co, ci = x.shape
 
                 x_reshape = x.reshape(co // self.block_size, self.block_size, ci)
                 if self.z_param:
-                    score = x_reshape.abs().mean(dim = 1,keepdim = True) - (self.p + self.z)
+                    score = x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p + self.z)
                 else:
-                    score = x_reshape.abs().mean(dim = 1,keepdim = True) - self.p
+                    score = x_reshape.abs().mean(dim = 1, keepdim = True) - (self.p)
                 hard_mask = (score > 0).float().detach()
         return hard_mask.sum(), hard_mask.numel()
 
@@ -263,12 +283,11 @@ class SLsqQuan(Quantizer):
                 score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + z)
             else:
                 score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
+            #score = score / (score.std().detach()) * 1e-3
             if not self.hard_pruning:
-                temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
-                #temperature = 1e-3
-                _soft_mask = t.sigmoid(score/temperature)
-                #self.soft_mask = _soft_mask
-                #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
+                temperature = t.tensor([1e-3], device = score.device)
+                #_soft_mask = t.sigmoid(score/temperature)
+                _soft_mask = self.weight_pruner(score)
                 _soft_mask = _soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co, ci, kh, kw)
                 return _soft_mask, temperature
             hard_mask = (score > 0).float()
@@ -276,18 +295,16 @@ class SLsqQuan(Quantizer):
 
         elif len(x.shape) == 2:
             co, ci = x.shape
-
             x_reshape = x.reshape(co // self.block_size, self.block_size, ci)
             if self.z_param:
                 score = x_reshape.abs().mean(dim = 1,keepdim = True) - (p + z)
             else:
                 score = x_reshape.abs().mean(dim = 1,keepdim = True) - p
+            #score = score / (score.std().detach()) * 1e-3
             if not self.hard_pruning:
-                temperature = ((score.abs().view(-1).sort()[0][int(score.numel()*self.temperature)]) * 0.5 + self.eps).detach()
-                #temperature = 1e-3
-                _soft_mask = t.sigmoid(score/temperature)
-                #self.soft_mask = _soft_mask
-                #self.soft_mask = self.soft_mask.repeat(1, self.block_size, 1, 1, 1).reshape(co,ci,kh,kw)
+                temperature = t.tensor([1e-3], device = score.device)
+                #_soft_mask = t.sigmoid(score/temperature)
+                _soft_mask = self.weight_pruner(score)
                 _soft_mask = _soft_mask.repeat(1, self.block_size, 1).reshape(co, ci)
                 return _soft_mask, temperature
             hard_mask = (score > 0).float()
@@ -300,10 +317,7 @@ class SLsqQuan(Quantizer):
             self.c = t.nn.Parameter(s * self.thd_pos)
         else:
             s = x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5)
-            #self.c.data = x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5)
-            #self.c.data = t.nn.Parameter(s.clone().detach() * self.thd_pos)
             self.c.data = s.clone().detach() * self.thd_pos
-            #self.c.data = s.clone().detach() * self.thd_pos
             
     def forward(self, x):
         mask = None
@@ -311,117 +325,14 @@ class SLsqQuan(Quantizer):
         if self.init_mode:
             self.init_mode = False
             return x, mask, temperature
-        self.p.data.clamp_(min = self.eps.item())
+        self.p.data.clamp_(min = 0.)
         self.c.data.clamp_(min = self.p.item() + self.eps.item())
         self.z.data.clamp_(min = -self.p.item())
-        if self.per_channel:
-            #s_grad_scale = 1.0 / ((x.numel()) ** 0.5)
-            s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-        else:
-            p_mask = (x.abs() >= self.p).float()
-            s = ((self.c - self.p ) / self.thd_pos).detach()
-            
-            #temp_grad_scale = ((x.numel() / self.thd_pos) ** 0.5)
-           
-            #c_grad_scale = ( self.thd_pos / temp_grad_scale)
-            #c_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-            #p_grad_scale = (1.0 / temp_grad_scale)
 
-            #temp_grad_scale = ((self.thd_pos * x_numel * (s ** 2) + (self.p * (x.abs() >= self.p).float() * (2 * x.abs() - self.p)).sum()) ** 0.5).detach()
-            #c_grad_scale = (self.thd_pos * self.c / temp_grad_scale).detach()
-            #p_grad_scale = (self.p / temp_grad_scale).detach() / (4)
-            #l2 = (x ** 2).sum().sqrt().detach()
-            #p_grad_scale = (self.p / l2).detach()
-            #c_grad_scale = (self.c / l2 * self.thd_pos).detach()
-
-            #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5 
-            #z_grad_scale = 1.
-            #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * self.thd_pos
-
-            #temp_grad_scale = (self.thd_pos / x_numel) ** 0.5
-            #p_grad_scale = (self.p / temp_grad_scale).detach()
-            #z_grad_scale = (self.p / temp_grad_scale).detach()
-            #z_grad_scale = 1
-            #c_grad_scale = (self.c / temp_grad_scale * self.thd_pos).detach()
-            #p_grad_scale = (self.thd_pos / x_numel) ** 0.5 
-            
-
-            #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5
-            #z_grad_scale = 1
-            #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * self.thd_pos
-
-            #x_numel = (x.abs() >= self.p).float().sum().detach()
-            #s_grad_scale = 1.0 / ((self.thd_pos * x.numel()) ** 0.5)
-            
-            #temp_grad_scale = ((self.thd_pos * x.numel()) ** 0.5) * s
-            #c_grad_scale = (self.c / temp_grad_scale).detach() * self.thd_pos
-            #p_grad_scale = (self.p / temp_grad_scale).detach()
-            #z_grad_scale = 1.
-            #c_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * (self.c / (self.c - self.p)).detach() * self.thd_pos
-            #p_grad_scale = (self.thd_pos / x.numel()) ** 0.5 * (self.p / (self.c - self.p)).detach()
-            #z_grad_scale = 1.
-            
-
-            #temp_grad = ((p_mask.sum() * self.thd_pos * (s ** 2) + ( self.p * (2 * x.abs() - self.p) * p_mask).sum()) ** 0.5).detach()
-            #temp_grad_1 = (p_mask.sum() * self.thd_pos * (s ** 2))
-            #temp_grad_2 = (self.p * ( 2 * x.abs() - self.p) * p_mask).sum()
-            #temp_grad = ((temp_grad_1 + temp_grad_2) ** 0.5).detach()
-            #assert temp_grad >= 0, "temp_grad needs to be not a nan value. temp_grad_1 = " + str(temp_grad_1) + "temp_grad_2 = " + str(temp_grad_2) 
-            #c_grad_scale = (self.c / temp_grad * self.thd_pos).detach()
-            #p_grad_scale = (self.p / temp_grad).detach()
-            #print((self.p * (2 * x.abs() - self.p) * p_mask).sum())
-            #print(self.p **2)
-            #print(temp_grad)
-            #temp_grad = (temp_grad ** 0.5).detach()
-            #print(temp_grad)
-            #p_grad_scale = (self.p / (temp_grad + self.eps)).detach()
-            #p_grad_scale_2 = p_grad_scale * (x.nueml() * self.temperature) * 4 / p_mask.sum()
-            #z_grad_scale = (self.p / temp_grad).detach()
-            #z_grad_scale = 1.
-            #c_grad_scale = (self.c / (temp_grad + self.eps) * self.thd_pos).detach()
-            c_grad_scale = 1.
-            p_grad_scale = 1.
-        #print(p_mask.sum() / x.numel())
-        c_scale = grad_scale(self.c, c_grad_scale)
-        p_scale = grad_scale(self.p, p_grad_scale)
-        #z_scale = grad_scale(self.z, z_grad_scale)
-        #c_scale = self.c
-        #p_scale = self.p
-        z_scale = self.z
-        '''
-        distance = c_scale - p_scale + self.eps
-        quant_x = x.sign() * t.clamp((x.abs() - p_scale) / distance, 0, 1)
-        quant_x = t.pow(x.abs(), self.gamma) * x.sign()
-        quant_x = quant_x * self.thd_pos 
-        quant_x = (t.round(quant_x) - quant_x).detach() + quant_x
-        quant_x = quant_x * distance / self.thd_pos
-        '''
-        '''
-        x = x.sign() * t.pow(x.abs(), self.gamma)
-        c_scale = c_scale.sign() * t.pow(c_scale.abs(), self.gamma)
-        p_scale = p_scale.sign() * t.pow(p_scale.abs(), self.gamma)
-        #quant_x = x
-        '''
-        '''
-        if self.ste:
-            quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
-        else:
-            sign = x.sign()
-            s = (c_scale - p_scale + self.eps) / self.thd_pos
-            quant_x = (x.abs() - p_scale) / s
-            quant_x = t.clamp(quant_x, 0, self.thd_pos) * sign
-            quant_x = (t.round(quant_x) - quant_x).detach() + quant_x
-            quant_x = quant_x * s
-        '''
         if (len(x.shape) == 4 and x.shape[1] != 1) or (len(x.shape) == 2):
-            mask, temperature = self.soft_pruner(x, p_scale, z_scale)
+            mask, temperature = self.soft_pruner(x, self.p, self.z)
             x = x * mask
-        quant_x = self.weight_quant(x, c_scale, p_scale, self.thd_pos)
-        '''
-        if (len(x.shape) == 4 and x.shape[1] != 1):
-            mask = self.soft_pruner(x, self.p, self.z)
-            quant_x = quant_x * mask
-        '''
+        quant_x = self.weight_quant(x, self.c, self.p, self.thd_pos)
         return quant_x, mask, temperature
 
 class pqQuan(Quantizer):
@@ -453,7 +364,7 @@ class pqQuan(Quantizer):
         self.soft_mask = None
         self.block_size = block_size
         self.hard_pruning = hard_pruning
-        self.temperature = temperature
+        self.temperature = t.tensor([temperature])
 
     def init_from(self, x, *args, **kwargs):
         if self.per_channel:
@@ -684,18 +595,15 @@ class SLsqQuan(Quantizer):
 '''
 if __name__ == "__main__":
     module = SLsqQuan(bit = 8)
-    x = t.randn((100,4,3,3))
-    print(x)
+    x = t.randn((100,4,1,1))
     module.init_from(x = x)
-    print(module.c, module.p)
-    module.p.data = t.tensor(0.4)
-    print(module.c, module.p)
-    
-    print(x)
-    print(module(x))
-    
-    plt.hist(x.flatten().detach(), bins = 400)
-    plt.hist(module(x).flatten().detach(), bins = 400)
-    module.hard_pruning = True
-    plt.hist(module(x).flatten().detach()+0.1, bins = 400, alpha = 0.4)
-    plt.show()
+    for i in range(0, 1000, 1):
+        module.p.data = t.tensor(i * 0.001, dtype=t.float32)
+        print(i * 0.001)
+        y, mask, temperature= module(x)
+        print(mask.mean())
+        (y.sum() + mask.mean() * 10).backward()
+        #y.sum().backward()
+        print(module.p.grad)
+        
+

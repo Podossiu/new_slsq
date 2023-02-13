@@ -85,17 +85,20 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
             loss += masking_loss
         '''
         if not hard_pruning:
-            masking_loss = [m.sum() * t for m, t in zip(mask, temperature) if m is not None]
-            count = [t.tensor(m.numel()) for m in mask if m is not None]
+            #masking_loss = [(m.mean() * t.mean()).mean() for m, t in zip(mask, temperature) if m is not None]
+            masking_loss = [(m.mean()).mean() ** 2 for m, t in zip(mask, temperature) if m is not None]
+            #temp = [t for m, t in zip(mask, temperature) if m is not None]
+
+            count = [t.tensor(m.mean().numel()) for m in mask if m is not None]
             masking_loss = t.stack(masking_loss).sum() / t.stack(count).sum()
             #masking_loss = t.stack(masking_loss).mean()
-            only_masking_loss = [m.sum().detach() for m, t in zip(mask, temperature) if m is not None]
-            only_masking_loss = t.stack(only_masking_loss).sum() / t.stack(count).sum()
-            #only_masking_loss = t.stack(only_masking_loss).mean()
+            only_masking_loss = [m.mean().detach() for m, t in zip(mask, temperature) if m is not None]
+            #only_masking_loss = t.stack(only_masking_loss).sum() / t.stack(count).sum()
+            only_masking_loss = t.stack(only_masking_loss).mean()
             #only_masking_loss = masking_loss.detach()
             #only_masking_loss = t.stack([m.sum() for m in mask if m is not None]).mean()
             #only_masking_loss = masking_loss
-            masking_loss = masking_loss * args.lamb
+            masking_loss = masking_loss * args.lamb 
             loss += masking_loss
         masking.update(masking_loss, inputs.size(0))
         only_masking.update(only_masking_loss, inputs.size(0))

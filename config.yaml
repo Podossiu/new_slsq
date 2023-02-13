@@ -35,7 +35,7 @@ dataloader:
   # Size of mini-batch
   batch_size: 64
   # Number of data loading workers
-  workers: 16
+  workers: 8
   # Seeds random generators in a deterministic way (i.e., set all the seeds 0).
   # Please keep it true when resuming the experiment from a checkpoint
   deterministic: true

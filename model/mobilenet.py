@@ -223,7 +223,6 @@ class MobileNetV2(nn.Module):
         x, mask, temperature = self.classifier(x)
         masks += (mask,)
         temperatures += (temperature,)
-        
         return x, masks, temperatures
 
     def _initialize_weights(self):
