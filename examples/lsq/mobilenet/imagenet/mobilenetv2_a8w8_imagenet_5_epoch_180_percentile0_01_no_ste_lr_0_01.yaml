@@ -89,7 +89,7 @@ hard_epochs: 150
 init_mode: true
 eta: 10
 optimizer:
-  learning_rate: 0.0001
+  learning_rate: 0.0005
   momentum: 0.9
   weight_decay: 4.0e-05
 

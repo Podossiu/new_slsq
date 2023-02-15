@@ -219,7 +219,8 @@ class MobileNetV2(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.dropout(x)
-
+        
+        #x, mask, temperature = self.classifier(x)
         x, mask, temperature = self.classifier(x)
         masks += (mask,)
         temperatures += (temperature,)

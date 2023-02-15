@@ -86,7 +86,7 @@ def train(train_loader, model, criterion, optimizer, lr_scheduler, epoch, monito
         '''
         if not hard_pruning:
             #masking_loss = [(m.mean() * t.mean()).mean() for m, t in zip(mask, temperature) if m is not None]
-            masking_loss = [(m.mean()).mean() ** 2 for m, t in zip(mask, temperature) if m is not None]
+            masking_loss = [(m.mean()).mean() for m, t in zip(mask, temperature) if m is not None]
             #temp = [t for m, t in zip(mask, temperature) if m is not None]
 
             count = [t.tensor(m.mean().numel()) for m in mask if m is not None]

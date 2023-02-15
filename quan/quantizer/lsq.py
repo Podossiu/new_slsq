@@ -331,6 +331,11 @@ class SLsqQuan(Quantizer):
 
         if (len(x.shape) == 4 and x.shape[1] != 1) or (len(x.shape) == 2):
             mask, temperature = self.soft_pruner(x, self.p, self.z)
+            mask_ratio = mask.sum() / mask.numel()
+            if mask_ratio <= 0.01:
+                with t.no_grad():
+                    self.p.data.fill_(0)
+                mask, temperature = self.soft_pruner(x, self.p, self.z)
             x = x * mask
         quant_x = self.weight_quant(x, self.c, self.p, self.thd_pos)
         return quant_x, mask, temperature
