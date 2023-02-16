@@ -61,8 +61,8 @@ def w_quant(input, c, p, thd):
     v_t = (input.abs() - p) * (1. - p_mask) * sign
     v_q = t.clamp(v_t / (s+eps), -thd, thd)
     #v_q = t.clamp(v_t / c, -thd, thd)
-    v_q = (v_q.round() - v_q).detach() + v_q
-    v_dq = v_q * s
+    v_q = (v_q.round() - v_q).detach() + v_q 
+    v_dq = v_q * s + v_q.sign() * p
     #v_dq = v_q * c
     return v_dq
 
@@ -266,13 +266,11 @@ class SLsqQuan(Quantizer):
         self.init_mode = False
         self.z = t.nn.Parameter(t.zeros(1))
         self.z_param = z_param
-        '''
         if ste:
             self.weight_quant = ste_w_quant
         else:
             self.weight_quant = w_quant
-        '''
-        self.weight_quant = w_quant_gamma
+        #self.weight_quant = w_quant_gamma
         self.weight_pruner = BinaryStep.apply
     def calculate_block_sparsity(self, x):
         with t.no_grad():
@@ -363,7 +361,7 @@ class SLsqQuan(Quantizer):
                     self.gamma.data.fill_(0)
                 mask, temperature = self.soft_pruner(x, p, self.z)
             x = x * mask
-        quant_x = self.weight_quant(x, c, p, self.thd_pos, self.gamma)
+        quant_x = self.weight_quant(x, c, p, self.thd_pos)
         return quant_x, mask, temperature
 
 class pqQuan(Quantizer):
