@@ -3,7 +3,6 @@ import math
 from .quantizer import Quantizer
 import numpy as np
 
-
 class BinaryStep(t.autograd.Function):
     @staticmethod 
     def forward(ctx, input):
@@ -61,6 +60,27 @@ def w_quant(input, c, p, thd):
 
     v_t = (input.abs() - p) * (1. - p_mask) * sign
     v_q = t.clamp(v_t / (s+eps), -thd, thd)
+    #v_q = t.clamp(v_t / c, -thd, thd)
+    v_q = (v_q.round() - v_q).detach() + v_q
+    v_dq = v_q * s
+    #v_dq = v_q * c
+    return v_dq
+
+def w_quant_gamma(input, c, p, thd, gamma):
+    eps = t.tensor([t.finfo(t.float32).eps], device = input.device)
+    sign = input.sign()
+    
+    p_mask = (input.abs() < p).float()
+    
+    v_t = (input.abs() - p) * (1. - p_mask) * sign
+    
+    ''' non-linearity '''
+    v_t = t.pow(v_t.abs() + eps, gamma) * sign
+    
+    distance = t.pow(c - p, gamma)
+    s = distance / thd
+
+    v_q = t.clamp(v_t / s, -thd, thd)
     #v_q = t.clamp(v_t / c, -thd, thd)
     v_q = (v_q.round() - v_q).detach() + v_q
     v_dq = v_q * s
@@ -240,17 +260,19 @@ class SLsqQuan(Quantizer):
         self.hard_pruning = hard_pruning
         self.temperature = t.tensor([temperature])
         self.register_buffer('eps', t.tensor([t.finfo(t.float32).eps]))
-        
-        self.gamma = t.tensor(t.ones(1))
+
+        self.gamma = t.nn.Parameter(t.ones(1))
         self.ste = ste
         self.init_mode = False
         self.z = t.nn.Parameter(t.zeros(1))
         self.z_param = z_param
-        
+        '''
         if ste:
             self.weight_quant = ste_w_quant
         else:
             self.weight_quant = w_quant
+        '''
+        self.weight_quant = w_quant_gamma
         self.weight_pruner = BinaryStep.apply
     def calculate_block_sparsity(self, x):
         with t.no_grad():
@@ -318,7 +340,7 @@ class SLsqQuan(Quantizer):
         else:
             s = x.detach().abs().mean() * 2 / (self.thd_pos ** 0.5)
             self.c.data = s.clone().detach() * self.thd_pos
-            
+
     def forward(self, x):
         mask = None
         temperature = None
@@ -328,16 +350,20 @@ class SLsqQuan(Quantizer):
         self.p.data.clamp_(min = 0.)
         self.c.data.clamp_(min = self.p.item() + self.eps.item())
         self.z.data.clamp_(min = -self.p.item())
-
+        
+        # non-linearity 
+        c = self.c
+        p = self.p
         if (len(x.shape) == 4 and x.shape[1] != 1) or (len(x.shape) == 2):
-            mask, temperature = self.soft_pruner(x, self.p, self.z)
+            mask, temperature = self.soft_pruner(x, p, self.z)
             mask_ratio = mask.sum() / mask.numel()
             if mask_ratio <= 0.01:
                 with t.no_grad():
                     self.p.data.fill_(0)
-                mask, temperature = self.soft_pruner(x, self.p, self.z)
+                    self.gamma.data.fill_(0)
+                mask, temperature = self.soft_pruner(x, p, self.z)
             x = x * mask
-        quant_x = self.weight_quant(x, self.c, self.p, self.thd_pos)
+        quant_x = self.weight_quant(x, c, p, self.thd_pos, self.gamma)
         return quant_x, mask, temperature
 
 class pqQuan(Quantizer):

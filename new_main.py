@@ -103,7 +103,7 @@ def main():
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
 
         param_optimizer = list(model.named_parameters())
-        alpha = ['c', 'p']
+        alpha = ['c', 'p', 'gamma']
         optimizer_grouped_parameters = [
             {'params' : [p for n, p in param_optimizer if not any(nd == n.split('.')[-1] for nd in alpha)],
              'weight_decay': args.optimizer.weight_decay},
@@ -171,7 +171,7 @@ def main():
             
         #t.nn.utils.clip_grad_norm_(model.parameters(), max_norm = 1.)
         param_optimizer = list(model.named_parameters())
-        alpha = ["p"]
+        alpha = ['c', 'p', 'gamma']
         optimizer_grouped_parameters = [
             {'params' : [p for n, p in param_optimizer if not any(nd == n.split('.')[-1] for nd in alpha)],
              'weight_decay': args.optimizer.weight_decay},
